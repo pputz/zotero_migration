@@ -9,7 +9,7 @@ library(dplyr)
 
 # ---- CONFIG -------------------------------------------------
 
-gedcom_file <- "input/Ahnentafel.ged" # adjust path
+gedcom_file <- "data/Ahnentafel.ged" # adjust path
 
 # ---- READ GEDCOM --------------------------------------------
 
@@ -70,9 +70,9 @@ print(sources_df %>% slice_head(n = 5))
 
 write.csv(
   sources_df,
-  "sources_step01_raw.csv",
+  "data/sources_step01_raw.csv",
   row.names = FALSE,
   fileEncoding = "UTF-8"
 )
 
-cat("Saved", nrow(sources_df), "sources to sources_step01_raw.csv\n")
+cat("Saved", nrow(sources_df), "sources to data/sources_step01_raw.csv\n")

@@ -9,8 +9,8 @@ library(tibble)
 
 # ---- CONFIG -------------------------------------------------
 
-input_csv <- "sources_step01_raw.csv"
-output_csv <- "sources_step01_enriched.csv"
+input_csv <- "data/sources_step01_raw.csv"
+output_csv <- "data/sources_step01_enriched.csv"
 
 # File extensions (case-insensitive)
 file_ext_pattern <- "(?i)\\.(jpg|jpeg|png|tif|tiff|pdf|gif)$"
