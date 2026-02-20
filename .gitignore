@@ -1,0 +1,17 @@
+# Ignore R session files
+.Rhistory
+.RData
+.Rproj.user/
+
+# Ignore data files
+/data/
+
+# Ignore output files
+/output/
+
+# Ignore temporary files
+*.tmp
+*.log
+
+# Ignore OS files
+.DS_Store
