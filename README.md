@@ -14,7 +14,7 @@ This is an R project for migrating Zotero data.
 ## Usage
 Add your R scripts to the R/ directory.
 
-## Migration Steps
+## Prototype Steps
 
 ### Phase 0 – Define the Target Model (Before Touching Data)
 Goal: Avoid rework by deciding how MacFamilyTree concepts map to Zotero.
@@ -53,12 +53,34 @@ Goal: Link each Zotero item to its document.
 Goal: Ensure scholarly reliability.
 - Automated and manual checks, diff reports
 
-### Phase 8 – Post-Migration Enhancements (Optional)
+
+## Refinement Steps
+
+### Phase 8 – Improve Zotero-Compatible Metadata (R)
+Goal: Create a Zotero-ready dataset.
+- Standardize author and title fields
+- Create Zotero CSV with required columns
+
+### Phase 9 – Import Metadata into Zotero
+Goal: Create Zotero items without attachments yet.
+- Import CSV into a dedicated collection, verify mappings
+
+### Phase 10 – Attach Files Programmatically (R + Zotero API)
+Goal: Link each Zotero item to its document.
+- Use API to attach files (copy into Zotero storage), log results
+
+### Phase 11 – Verification & Quality Control
+Goal: Ensure scholarly reliability.
+- Automated and manual checks, diff reports
+
+### Phase 12 – Post-Migration Enhancements (Optional)
 - Add relations, normalize names, backups
 
-### Phase 9 – Documentation & Reproducibility
+### Phase 13 – Documentation & Reproducibility
 Goal: Future-proof the work.
 - Write README, version scripts, keep raw data immutable
+
+
 
 ### Deliverables Checklist
 - Original MacFamilyTree export
