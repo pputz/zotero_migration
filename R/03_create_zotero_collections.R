@@ -52,6 +52,11 @@ sources <- sources %>%
     collection_hierarchy = str_split(collection_path, "/")
   )
 
+# Subset sources to the "Linie Kim" branch only
+# Keep only rows where the derived collection path starts with 'Linie Kim'
+# sources <- sources %>%
+#   filter(!is.na(collection_path) & str_starts(collection_path, "Linie Kim"))
+
 # ---- CREATE COLLECTIONS VIA API -----------------------------------------
 
 # Function to create collection
@@ -178,11 +183,10 @@ if (is.null(family_key)) stop("Failed to create/find root collection 'Familytree
 collection_keys[["."]] <- family_key
 
 # For each unique hierarchy, create collections under Familytree
-unique_paths <- unique(sources$collection_path[!is.na(sources$collection_path) & sources$collection_path != "."])
-# For testing, take a subset of 5 collections
-if (length(unique_paths) > 5) {
-    unique_paths <- sample(unique_paths, 5)
-}
+# Derive unique_paths from directories of files found in `all_files` (relative to `local_root`)
+dir_paths <- unique(path_rel(path_dir(all_files), local_root))
+unique_paths <- dir_paths[!is.na(dir_paths) & dir_paths != "."]
+unique_paths <- unique(unique_paths)
 
 for (path in unique_paths) {
   hierarchy <- str_split(path, "/")[[1]]
