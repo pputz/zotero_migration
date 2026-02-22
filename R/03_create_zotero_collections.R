@@ -60,22 +60,61 @@ create_collection <- function(name, parent_key = NULL) {
   if (!is.null(parent_key)) {
     data$parentCollection <- parent_key
   }
-  
+
   cat("Creating collection:", name, "with parent:", ifelse(is.null(parent_key), "none", parent_key), "\n")
-  
+
   response <- POST(
     url = paste0(base_url, "/collections"),
     add_headers("Zotero-API-Key" = zotero_api_key),
     body = list(data),  # Send as array
     encode = "json"
   )
-  
-  if (status_code(response) == 200) {
-    content(response)[[1]]$key  # Since it's an array, take first
-  } else {
+
+  if (!(status_code(response) %in% c(200, 201))) {
     cat("Failed to create collection:", name, "\nStatus:", status_code(response), "\nResponse:", content(response, "text"), "\n")
-    NULL
+    return(NULL)
   }
+
+  resp_content <- content(response)
+  key <- NULL
+
+  # Several possible Zotero response shapes — handle common ones
+  if (is.list(resp_content)) {
+    # 1) Array of created objects: list(list(key=...))
+    if (length(resp_content) > 0 && is.list(resp_content[[1]]) && !is.null(resp_content[[1]]$key)) {
+      key <- resp_content[[1]]$key
+    }
+    # 2) Single-object with $key
+    if (is.null(key) && !is.null(resp_content$key)) {
+      key <- resp_content$key
+    }
+    # 3) success map: { "success": { "0": ["KEY"] } }
+    if (is.null(key) && !is.null(resp_content$success) && length(resp_content$success) > 0) {
+      first <- resp_content$success[[1]]
+      if (is.character(first) && length(first) > 0) key <- first[1]
+    }
+    # 4) nested successful object: { "successful": { "0": { data: { key: ["KEY"] }}}}
+    if (is.null(key) && !is.null(resp_content$successful) && length(resp_content$successful) > 0) {
+      firstsuc <- resp_content$successful[[1]]
+      if (is.list(firstsuc) && !is.null(firstsuc$data) && !is.null(firstsuc$data$key)) {
+        k <- firstsuc$data$key
+        if (is.character(k) && length(k) > 0) key <- k[1]
+      }
+    }
+  }
+
+  # register newly created collection locally so lookups work
+  if (!is.null(key)) {
+    new_entry <- list(name = name, key = key, parentCollection = parent_key)
+    existing_collections <<- c(existing_collections, list(new_entry))
+    existing_names <<- unique(c(existing_names, name))
+  }
+
+  if (is.null(key)) {
+    cat("Failed to parse created key for collection:", name, "\nResponse raw:", toString(resp_content), "\n")
+  }
+
+  key
 }
 
 # Get existing collections to avoid duplicates
@@ -110,10 +149,35 @@ if (!length(existing_collections)) {
   existing_names <- vapply(valid_collections, function(x) x$name, character(1))
   existing_collections <- valid_collections  # Update for later use
 }
+# Create/find root collection "Familytree" and ensure all created collections go under it
 # Create a map of path to key
 collection_keys <- list()
 
-# For each unique hierarchy, create collections
+# Helper: find existing collection by name and parent key
+find_existing_collection_key <- function(name, parent_key) {
+  matches <- sapply(existing_collections, function(x) {
+    if (!is.list(x) || is.null(x$name)) return(FALSE)
+    pc <- if (!is.null(x$parentCollection)) x$parentCollection else NULL
+    name_match <- identical(x$name, name)
+    parent_match <- (is.null(parent_key) && is.null(pc)) || (!is.null(parent_key) && !is.null(pc) && identical(pc, parent_key))
+    name_match && parent_match
+  })
+  if (any(matches)) {
+    existing_collections[[which(matches)[1]]]$key
+  } else {
+    NULL
+  }
+}
+
+# Ensure root Familytree exists
+family_key <- find_existing_collection_key("Familytree", NULL)
+if (is.null(family_key)) {
+  family_key <- create_collection("Familytree", NULL)
+}
+if (is.null(family_key)) stop("Failed to create/find root collection 'Familytree'.")
+collection_keys[["."]] <- family_key
+
+# For each unique hierarchy, create collections under Familytree
 unique_paths <- unique(sources$collection_path[!is.na(sources$collection_path) & sources$collection_path != "."])
 # For testing, take a subset of 5 collections
 if (length(unique_paths) > 5) {
@@ -122,24 +186,23 @@ if (length(unique_paths) > 5) {
 
 for (path in unique_paths) {
   hierarchy <- str_split(path, "/")[[1]]
-  current_parent <- NULL
+  current_parent <- family_key
   current_path <- ""
-  
+
   for (level in hierarchy) {
     current_path <- if (current_path == "") level else paste(current_path, level, sep = "/")
-    
+
     if (!(current_path %in% names(collection_keys))) {
-      if (!(level %in% existing_names)) {
+      # try to find by name+parent
+      ex_key <- find_existing_collection_key(level, current_parent)
+      if (!is.null(ex_key)) {
+        collection_keys[[current_path]] <- ex_key
+      } else {
         key <- create_collection(level, current_parent)
         if (!is.null(key)) {
           collection_keys[[current_path]] <- key
-          existing_names <- c(existing_names, level)
-        }
-      } else {
-        # Find existing key
-        existing <- existing_collections[sapply(existing_collections, function(x) x$name == level)]
-        if (length(existing) > 0) {
-          collection_keys[[current_path]] <- existing[[1]]$key
+          # small pause to avoid rate limits
+          Sys.sleep(0.12)
         }
       }
     }
