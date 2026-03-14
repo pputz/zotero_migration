@@ -1,99 +1,85 @@
 # ------------------------------------------------------------
-# Step 1.5: Space-safe, URL-safe, 8-digit-prefixed filenames
+# Step 1.5: Detect attachment filenames and URLs from GEDCOM
 # ------------------------------------------------------------
 
-library(stringr)
 library(dplyr)
 library(purrr)
-library(tibble)
+library(readr)
+library(stringr)
 
 # ---- CONFIG -------------------------------------------------
 
 input_csv <- "data/sources_step01_raw.csv"
 output_csv <- "data/sources_step01_enriched.csv"
 
-# File extensions (case-insensitive)
-file_ext_pattern <- "(?i)\\.(jpg|jpeg|png|tif|tiff|pdf|gif)$"
-
-# URL pattern
-url_pattern <- "(?i)^https?://"
-
-# Filenames must start with 8 digits
+file_ext_pattern <- "\\.(jpg|jpeg|png|tif|tiff|pdf|gif)$"
+url_extract_pattern <- "https?://\\S+"
 prefix_pattern <- "^\\d{8}"
 
 # ---- LOAD ---------------------------------------------------
 
-sources <- read.csv(input_csv, stringsAsFactors = FALSE)
+sources <- readr::read_csv(input_csv, show_col_types = FALSE)
 
 # ---- HELPERS -----------------------------------------------
 
 split_lines <- function(raw_block) {
-  str_split(raw_block, "\n")[[1]]
+  if (is.na(raw_block) || !nzchar(raw_block)) {
+    return(character())
+  }
+
+  str_split(raw_block, "\n", simplify = FALSE)[[1]]
 }
 
-strip_gedcom_prefix <- function(line) {
-  str_replace(line, "^\\d+\\s+\\S+\\s+", "")
+strip_gedcom_prefix <- function(lines) {
+  lines %>%
+    str_replace("^\\d+\\s+\\S+\\s*", "") %>%
+    str_squish()
 }
 
 extract_urls <- function(lines) {
   values <- strip_gedcom_prefix(lines)
-  urls <- values[str_detect(values, regex(url_pattern, ignore_case = TRUE))]
+
+  urls <- values %>%
+    str_extract_all(regex(url_extract_pattern, ignore_case = TRUE)) %>%
+    unlist(use.names = FALSE)
+
   unique(urls)
 }
 
-extract_local_filenames <- function(lines, urls) {
+extract_local_filenames <- function(lines) {
   values <- strip_gedcom_prefix(lines)
 
-  # 1. Must end with a valid extension
-  candidates <- values[str_detect(
-    values,
-    regex(file_ext_pattern, ignore_case = TRUE)
-  )]
+  candidates <- values[
+    str_detect(values, regex(file_ext_pattern, ignore_case = TRUE)) &
+      str_detect(values, regex(prefix_pattern)) &
+      !str_detect(values, regex("^https?://", ignore_case = TRUE))
+  ]
 
-  # 2. Must start with 8-digit number
-  candidates <- candidates[str_detect(candidates, regex(prefix_pattern))]
+  unique(candidates)
+}
 
-  # 3. Exclude URLs
-  url_filenames <- unlist(str_extract_all(
-    urls,
-    regex(file_ext_pattern, ignore_case = TRUE)
-  ))
-  locals <- setdiff(candidates, url_filenames)
-
-  unique(locals)
+collapse_or_na <- function(x) {
+  if (length(x) == 0) {
+    NA_character_
+  } else {
+    paste(x, collapse = " | ")
+  }
 }
 
 # ---- APPLY EXTRACTION --------------------------------------
 
+lines_list <- map(sources$raw_block, split_lines)
+urls_list <- map(lines_list, extract_urls)
+files_list <- map(lines_list, extract_local_filenames)
+
 sources_enriched <- sources %>%
-  rowwise() %>%
   mutate(
-    lines = list(split_lines(raw_block)),
-    urls = list(extract_urls(lines)),
-    local_files = list(extract_local_filenames(lines, urls)),
-    detected_urls = if (length(urls) == 0) NA_character_ else
-      paste(urls, collapse = " | "),
-    detected_filenames = if (length(local_files) == 0) NA_character_ else
-      paste(local_files, collapse = " | ")
-  ) %>%
-  ungroup() %>%
-  select(-lines, -urls, -local_files)
-
-# ---- VERIFY -------------------------------------------------
-
-print(
-  sources_enriched %>%
-    select(source_id, title, detected_filenames, detected_urls) %>%
-    slice_head(n = 10)
-)
+    detected_urls = map_chr(urls_list, collapse_or_na),
+    detected_filenames = map_chr(files_list, collapse_or_na)
+  )
 
 # ---- SAVE ---------------------------------------------------
 
-write.csv(
-  sources_enriched,
-  output_csv,
-  row.names = FALSE,
-  fileEncoding = "UTF-8"
-)
+readr::write_csv(sources_enriched, output_csv)
 
-cat("Saved final cleaned data to", output_csv, "\n")
+sources_enriched
