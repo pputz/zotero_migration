@@ -7,3 +7,6 @@ Progress:
  - Zotero attachment policy: Copy files into Zotero storage.
  - Migration steps outlined (see README.md for full details).
  - Agile approach: Start coding, check results, refine requirements.
+
+References:
+- Zotero API documentation: https://www.zotero.org/support/dev/web_api/v3/basics
