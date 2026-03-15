@@ -1,6 +1,6 @@
-# 02_prepare_zotero_metadata.R
-# Phase 4: Prepare Zotero-Compatible Metadata
-# Transform enriched CSV into Zotero CSV format
+# 02b_prepare_zotero_metadata.R
+# Phase 4b: Prepare Zotero-compatible metadata
+# Transform standardized references into Zotero RDF format
 
 library(dplyr)
 library(readr)
@@ -9,7 +9,7 @@ library(xml2)
 
 # ---- CONFIG -------------------------------------------------
 
-input_csv <- "data/sources_step01_enriched.csv"
+input_csv <- "data/sources_step02_biblio_fixed.csv"
 output_rdf <- "data/zotero_import.rdf"
 
 # Zotero item type mapping (customize as needed)
@@ -21,15 +21,13 @@ item_type_mapping <- c(
   "default" = "document"
 )
 
-
 # ---- LOAD ---------------------------------------------------
 
 sources <- read_csv(input_csv, col_types = cols(.default = "c"))
 
 # ---- TRANSFORM ---------------------------------------------
 
-# Data transformations
-sources <- sources %>%
+zotero_data <- sources %>%
   mutate(
     itemType = case_when(
       str_detect(title, "Taufbuch") ~ item_type_mapping["Taufbuch"],
@@ -39,18 +37,17 @@ sources <- sources %>%
       TRUE ~ item_type_mapping["default"]
     ),
     date = {
-      digits <- str_extract(detected_filenames, "\\d{8}")
-      ifelse(!is.na(digits) & nchar(digits) == 8,
-             paste0(substr(digits, 1, 4), "-", substr(digits, 5, 6), "-", substr(digits, 7, 8)),
-             NA_character_)
-    }
-  )
-
-# Map fields to Zotero columns
-zotero_data <- sources %>%
-  mutate(
-    title = title,
-    author = author,
+      digits <- str_extract(detected_filenames, "\d{8}")
+      ifelse(
+        !is.na(digits) & nchar(digits) == 8,
+        paste0(
+          substr(digits, 1, 4), "-",
+          substr(digits, 5, 6), "-",
+          substr(digits, 7, 8)
+        ),
+        NA_character_
+      )
+    },
     archive = place,
     archiveLocation = publication,
     URL = detected_urls,
@@ -61,41 +58,50 @@ zotero_data <- sources %>%
 
 # ---- SAVE ---------------------------------------------------
 
-# Create Zotero RDF
-rdf <- xml_new_root("rdf:RDF",
+rdf <- xml_new_root(
+  "rdf:RDF",
   `xmlns:rdf` = "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
   `xmlns:z` = "http://www.zotero.org/namespaces/export#",
   `xmlns:dcterms` = "http://purl.org/dc/terms/",
   `xmlns:dc` = "http://purl.org/dc/elements/1.1/"
 )
 
-for (i in 1:min(10, nrow(zotero_data))) {
+for (i in seq_len(min(10, nrow(zotero_data)))) {
   item <- xml_add_child(rdf, "z:Item", `rdf:about` = paste0("#item_", i))
   xml_add_child(item, "z:itemType", zotero_data$itemType[i])
   xml_add_child(item, "dcterms:title", zotero_data$title[i])
+
   if (!is.na(zotero_data$author[i])) {
     xml_add_child(item, "dc:creator", zotero_data$author[i])
   }
+
   if (!is.na(zotero_data$date[i])) {
     xml_add_child(item, "dcterms:date", zotero_data$date[i])
   }
+
   if (!is.na(zotero_data$archive[i])) {
     xml_add_child(item, "z:archive", zotero_data$archive[i])
   }
+
   if (!is.na(zotero_data$archiveLocation[i])) {
     xml_add_child(item, "z:archiveLocation", zotero_data$archiveLocation[i])
   }
+
   if (!is.na(zotero_data$URL[i])) {
     xml_add_child(item, "dc:identifier", zotero_data$URL[i])
   }
+
   if (!is.na(zotero_data$extra[i])) {
     xml_add_child(item, "z:extra", zotero_data$extra[i])
   }
+
   if (!is.na(zotero_data$tags[i])) {
     tag_list <- str_split(zotero_data$tags[i], ";")[[1]]
+
     for (tag in tag_list) {
-      if (str_trim(tag) != "") {
-        xml_add_child(item, "dc:subject", str_trim(tag))
+      clean_tag <- str_trim(tag)
+      if (clean_tag != "") {
+        xml_add_child(item, "dc:subject", clean_tag)
       }
     }
   }
@@ -103,4 +109,8 @@ for (i in 1:min(10, nrow(zotero_data))) {
 
 write_xml(rdf, output_rdf, encoding = "UTF-8")
 
-cat("Prepared Zotero RDF for", min(10, nrow(zotero_data)), "items. Saved to", output_rdf, "\n")
+list(
+  rows_loaded = nrow(sources),
+  rows_exported_to_rdf = min(10, nrow(zotero_data)),
+  output_file = output_rdf
+)

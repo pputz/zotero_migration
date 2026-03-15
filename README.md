@@ -37,11 +37,18 @@ Goal: Fix issues before Zotero sees the data.
 Goal: Choose the safest ingestion path.
 - Recommended: Zotero CSV + Zotero API for metadata and attachments
 
-### Phase 4 – Prepare Zotero-Compatible Metadata (R)
-Goal: Create a Zotero-ready dataset.
-- Transform fields, create Zotero CSV with required columns
+# ...existing code...
+### Phase 4a – Fix Bibliographical References (R)
+Goal: Standardize source fields before metadata export.
+- Normalize title/author/place/publication fields
+- Save cleaned dataset for metadata transformation
+
+### Phase 4b – Prepare Zotero-Compatible Metadata (R)
+Goal: Create Zotero-ready metadata output.
+- Transform cleaned fields and generate Zotero import RDF
 
 ### Phase 5 – Import Metadata into Zotero
+# ...existing code...
 Goal: Create Zotero items without attachments yet.
 - Import CSV into a dedicated collection, verify mappings
 
