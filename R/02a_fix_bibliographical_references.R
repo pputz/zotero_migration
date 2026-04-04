@@ -110,7 +110,7 @@ sources_fixed_2 <- sources_fixed_1 |>
       NA_character_
     ),
 
-    # Create z_title for Taufbuch entries
+    # Create z_title for Kirchenbücher
     z_title = case_when(
       genre == "Taufbuch" & !is.na(name) & !is.na(date_formatted) ~
         paste0("Geburt und Taufe ", name, " ", date_formatted),
@@ -121,7 +121,58 @@ sources_fixed_2 <- sources_fixed_1 |>
       #TRUE ~ title
       TRUE ~ NA_character_
     )
+
+    # Create z_ItemType for Kirchenbücher
+    z_ItemType = case_when(
+     genre == "Taufbuch" ~ "Taufbuch",
+     genre == "Trauungsbuch" ~ "Trauungsbuch",
+     genre == "Totenbuch" ~ "Totenbuch",
+     TRUE ~ "Book"
+    )
+
+    # Create z_Series for Kirchenbücher
+    z_Series = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~
+        str_extract(title, "Taufbuch|Trauungsbuch|Totenbuch"),
+      TRUE ~ NA_character_
+    )
+
+    # Create z_Volume for Kirchenbücher
+    z_Volume = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~
+        str_extract(publication, "\\d+"), # Extract volume number from publication field - 
+      TRUE ~ NA_character_ 
+    ) 
+
+    # Create z_Archive for Kirchenbücher
+    z_Archive = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~ "Matricula Online",
+      TRUE ~ NA_character_
+    )
+
+  # Create z_Language for Kirchenbücher
+    z_Language = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~ "de_AT",
+      TRUE ~ NA_character_
+    )
+
+  # Create z_URL for Kirchenbücher
+    z_URL = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ NA_character_
+    )
+
+  # Create z_Extra for Kirchenbücher
+    z_Extra = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") & !is.na(detected_filenames) ~ paste0("Filename: ", detected_filenames), # Pattern: "Filename: <filename>"
+      TRUE ~ NA_character_
+    )
   )
+  
+
+
+  
+
 
 # ---- SAVE ---------------------------------------------------
 
