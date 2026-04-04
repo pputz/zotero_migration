@@ -9,11 +9,13 @@ library(stringr)
 # ---- CONFIG -------------------------------------------------
 
 input_csv <- "data/sources_step01_enriched.csv"
+author_mapping_csv <- "data/manual data wrangling/z_authors.csv"
 output_csv <- "data/sources_step02_biblio_fixed.csv"
 
 # ---- LOAD ---------------------------------------------------
 
 sources <- read_csv(input_csv, col_types = cols(.default = "c"))
+author_mapping <- read_csv(author_mapping_csv, col_types = cols(.default = "c"))
 
 # ---- HELPERS ------------------------------------------------
 
@@ -62,6 +64,11 @@ sources_fixed <- sources |>
     detected_urls = na_if_empty(detected_urls),
     detected_filenames = na_if_empty(detected_filenames)
   )
+
+# ---- FIX AUTHORS --------------------------------------------
+
+sources_fixed <- sources_fixed |>
+  left_join(author_mapping, by = c("author" = "original"))
 
 # ---- SAVE ---------------------------------------------------
 
