@@ -2,9 +2,10 @@
 # Phase 4a: Fix bibliographical references
 # Standardize bibliographic source fields from the enriched export
 
-library(dplyr)
-library(readr)
-library(stringr)
+# library(dplyr)
+# library(readr)
+# library(stringr)
+library(tidyverse)
 
 # ---- CONFIG -------------------------------------------------
 
@@ -81,11 +82,39 @@ sources_fixed_1 <- sources_fixed |>
       str_detect(detected_filenames, "Toten") ~ "Totenbuch",
       str_detect(detected_filenames, "Sterb") ~ "Totenbuch",
       str_detect(detected_filenames, "Pflegeakt") ~ "Pflegeakt",
-      TRUE ~ NA_character_
+      str_detect(refn, "Taufbuch|Mischband") ~ "Taufbuch",
+      str_detect(refn, "Trauungsbuch") ~ "Trauungsbuch",
+      str_detect(title, regex("census", ignore_case = TRUE)) ~ "Census",
+      str_detect(
+        title,
+        regex("Todesanzeige", ignore_case = TRUE)
+      ) ~ "Zeitungsartikel",
+      str_detect(
+        author,
+        regex("post|zeitung|blatt|nachrichten", ignore_case = TRUE)
+      ) ~ "Zeitungsartikel",
+      str_detect(
+        publication,
+        regex("post|zeitung|blatt|nachrichten", ignore_case = TRUE)
+      ) ~ "Zeitungsartikel",
+      str_detect(
+        title,
+        regex("certificate|license", ignore_case = TRUE)
+      ) ~ "Certificate",
+      str_detect(title, regex("parte", ignore_case = TRUE)) ~ "Parte",
+      str_detect(title, regex("grundbuch", ignore_case = TRUE)) ~ "Grundbuch",
+      str_detect(detected_urls, regex("grave", ignore_case = TRUE)) ~ "Grave",
+      TRUE ~ "Other"
     )
   )
 
-# ---- TITLE KIRCHENBUECHER -----------------------------------
+# Create table which counts the number of unique genres
+genre_counts <- sources_fixed_1 |>
+  group_by(genre) |>
+  summarise(count = n_distinct(source_id)) |>
+  arrange(desc(count))
+
+# ---- KIRCHENBUECHER ----------------------------------------
 # Pfarre Pichl bei Wels: Geburt Maria Königsmayr, 22. Juni 1842,
 # in: Taufbuch 106/1842, S. 6, Digitalisat über Matricula Online, URL.
 
@@ -120,62 +149,126 @@ sources_fixed_2 <- sources_fixed_1 |>
         paste0("Sterbeeintrag ", name, " ", date_formatted),
       #TRUE ~ title
       TRUE ~ NA_character_
-    )
+    ),
 
     # Create z_ItemType for Kirchenbücher
     z_ItemType = case_when(
-     genre == "Taufbuch" ~ "Taufbuch",
-     genre == "Trauungsbuch" ~ "Trauungsbuch",
-     genre == "Totenbuch" ~ "Totenbuch",
-     TRUE ~ "Book"
-    )
+      genre == "Taufbuch" ~ "Taufbuch",
+      genre == "Trauungsbuch" ~ "Trauungsbuch",
+      genre == "Totenbuch" ~ "Totenbuch",
+      TRUE ~ "Book"
+    ),
 
     # Create z_Series for Kirchenbücher
     z_Series = case_when(
       genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~
         str_extract(title, "Taufbuch|Trauungsbuch|Totenbuch"),
       TRUE ~ NA_character_
-    )
+    ),
 
     # Create z_Volume for Kirchenbücher
     z_Volume = case_when(
       genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~
-        str_extract(publication, "\\d+"), # Extract volume number from publication field - 
-      TRUE ~ NA_character_ 
-    ) 
-
-    # Create z_Archive for Kirchenbücher
-    z_Archive = case_when(
-      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~ "Matricula Online",
+        str_extract(publication, "\\d+"), # Extract volume number from publication field -
       TRUE ~ NA_character_
-    )
+    ),
 
-  # Create z_Language for Kirchenbücher
+    # Create z_Archive for Kirchenbücher, set to "Matricula Online" or "Landesarchiv Oberösterreich" based on detected_URL
+    z_Archive = case_when(
+      genre %in%
+        c("Taufbuch", "Trauungsbuch", "Totenbuch") &
+        str_detect(detected_urls, "matricula") ~ "Matricula Online",
+      genre %in%
+        c("Taufbuch", "Trauungsbuch", "Totenbuch") &
+        str_detect(
+          detected_urls,
+          "landesarchiv"
+        ) ~ "Landesarchiv Oberösterreich",
+      TRUE ~ NA_character_
+    ),
+
+    # Create z_Language for Kirchenbücher
     z_Language = case_when(
       genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~ "de_AT",
       TRUE ~ NA_character_
-    )
+    ),
 
-  # Create z_URL for Kirchenbücher
+    # Create z_URL for Kirchenbücher
     z_URL = case_when(
-      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") & !is.na(detected_urls) ~ detected_urls,
+      genre %in%
+        c("Taufbuch", "Trauungsbuch", "Totenbuch") &
+        !is.na(detected_urls) ~ detected_urls,
       TRUE ~ NA_character_
-    )
+    ),
 
-  # Create z_Extra for Kirchenbücher
+    # Create z_Extra for Kirchenbücher
     z_Extra = case_when(
-      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") & !is.na(detected_filenames) ~ paste0("Filename: ", detected_filenames), # Pattern: "Filename: <filename>"
+      genre %in%
+        c("Taufbuch", "Trauungsbuch", "Totenbuch") &
+        !is.na(detected_filenames) ~ paste0("Filename: ", detected_filenames), # Pattern: "Filename: <filename>"
       TRUE ~ NA_character_
     )
   )
-  
 
+# ---- CENSUS -------------------------------------------------
+# Item Type: Document
+# Title: 1850 U.S. Census – John Smith household, Springfield, Sangamon County, Illinois
+# Author: United States Census Bureau
+# Date: 1850-06-01
+# Archive: National Archives (NARA); via Ancestry
+# Archive Location: Springfield, Ward 3, p. 142, dwelling 210, family 225
+# Call Number: RG 29, M432 roll 123
+# URL: (Ancestry link)
+# Extra: Household members listed?
 
-  
-
+sources_fixed_2 <- sources_fixed_2 |>
+  mutate(
+    z_ItemType = case_when(
+      genre == "Census" ~ "Document",
+      TRUE ~ z_ItemType
+    ),
+    # Create z_Title for Census
+    # Reformulate title to "1850 U.S. Census – John Smith household"
+    # Extract year from date_raw and name from name, then combine with "U.S. Census –" to create z_Title
+    z_title = case_when(
+      genre == "Census" ~
+        paste0(
+          str_extract(date_raw, "^\\d{4}"),
+          " U.S. Census – ",
+          name,
+          " household"
+        ),
+      TRUE ~ title
+    ),
+    # Create z_name for Census
+    z_name = case_when(
+      genre == "Census" ~ "United States Census Bureau",
+      TRUE ~ z_name
+    ),
+    # Create z_Date for Census
+    # Extract date from date_raw (yyyymmdd) and reformat to "YYYY-MM-DD" for z_Date
+    z_Date = case_when(
+      genre == "Census" & !is.na(date_raw) ~
+        format(ymd(date_raw), "%Y-%m-%d"),
+      TRUE ~ NA_character_
+    ),
+    # Create z_Archive for Census
+    z_Archive = case_when(
+      genre == "Census" ~ "National Archives (NARA); via Ancestry",
+      TRUE ~ z_Archive
+    ),
+    # Create z_URL for Census
+    z_URL = case_when(
+      genre == "Census" & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ z_URL
+    ),
+    # Create z_Language for Census
+    z_Language = case_when(
+      genre == "Census" ~ "en_US",
+      TRUE ~ z_Language
+    )
+  )
 
 # ---- SAVE ---------------------------------------------------
 
-write_csv(sources_fixed, output_csv)
-
-sources_fixed
+# write_csv(sources_fixed, output_csv)
