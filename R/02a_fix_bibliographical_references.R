@@ -269,6 +269,71 @@ sources_fixed_2 <- sources_fixed_2 |>
     )
   )
 
+# ---- ZEITUNGSARTIKEL -----------------------------------------
+# Item Type: Newspaper Article
+# Title: Todesanzeige für John Smith
+# Publication: OÖ Nachrichten
+# Pages: 5
+# Date: 1950-06-01
+# Archive: Österreichische Nationalbibliothek; via ANNO
+# URL: (ANNO link)
+# Language: de_AT
+# Extra: Filename: OON_1950_06_01_p5.jpg
+
+sources_fixed_3 <- sources_fixed_2 |>
+  mutate(
+    z_ItemType = case_when(
+      genre == "Zeitungsartikel" ~ "Newspaper Article",
+      TRUE ~ z_ItemType
+    ),
+    # Create z_Title for Newspaper Articles
+    # Reformulate title to "Todesanzeige für John Smith"
+    # Extract notice type (Todesanzeige) from title, then combine with "für" to create z_Title
+    # Extract name from name and combine with "Todesanzeige für" to create z_Title
+    z_title = case_when(
+      genre == "Zeitungsartikel" ~ paste0(
+        str_extract(
+          title,
+          regex(
+            "\\S*(anzeige|verband|nachricht|nachruf)\\S*",
+            ignore_case = TRUE
+          )
+        ),
+        " für ",
+        name
+      ),
+      TRUE ~ z_title
+    ),
+    # Create z_Publication for Newspaper Articles
+    z_Publication = case_when(
+      genre == "Zeitungsartikel" & !is.na(publication) ~ author, # Extract publication name from author field for newspaper articles
+      TRUE ~ NA_character_
+    ),
+    # Create z_Date for Newspaper Articles
+    # Extract date from refn (yyyymmdd) and reformat to "YYYY-MM-DD" for z_Date
+    z_Date = case_when(
+      genre == "Zeitungsartikel" & !is.na(refn) ~
+        format(ymd(str_extract(refn, "\\d{8}")), "%Y-%m-%d"),
+      TRUE ~ z_Date
+    ),
+    # Create z_Archive for Newspaper Articles
+    z_Archive = case_when(
+      genre ==
+        "Zeitungsartikel" ~ "Österreichische Nationalbibliothek; via ANNO",
+      TRUE ~ z_Archive
+    ),
+    # Create z_URL for Newspaper Articles
+    z_URL = case_when(
+      genre == "Zeitungsartikel" & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ z_URL
+    ),
+    # Create z_Language for Newspaper Articles
+    z_Language = case_when(
+      genre == "Zeitungsartikel" ~ "de_AT",
+      TRUE ~ z_Language
+    )
+  )
+
 # ---- SAVE ---------------------------------------------------
 
 # write_csv(sources_fixed, output_csv)
