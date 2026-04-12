@@ -309,7 +309,7 @@ sources_fixed_3 <- sources_fixed_2 |>
       genre == "Zeitungsartikel" & !is.na(publication) ~ author, # Extract publication name from author field for newspaper articles
       TRUE ~ NA_character_
     ),
-    # Create z_Pages for Newspaper Articles - use all information from publication field
+    #Create z_Pages for Newspaper Articles - use all information from publication field
     z_Pages = case_when(
       genre == "Zeitungsartikel" & !is.na(publication) ~ publication, # Extract page information from publication field for newspaper articles
       TRUE ~ NA_character_
@@ -341,6 +341,110 @@ sources_fixed_3 <- sources_fixed_2 |>
       TRUE ~ z_Language
     )
   )
+
+
+
+# ---- OTHER --------------------------------------------------
+# Item Type: Document
+# Title: 
+# Publication: 
+# Pages: 
+# Date: 
+# Archive: 
+# LocArchive: 
+# URL: 
+# Language: 
+# Extra: Filename: 
+
+sources_fixed_4 <- sources_fixed_3 |>
+  mutate(
+    z_ItemType = case_when(
+      genre == "Other" ~ "Document",
+      TRUE ~ z_ItemType
+    ),
+    # Create z_LocArchive - extract location information from publication field
+    z_LocArchive = case_when(
+      genre == "Other" & !is.na(publication) ~ publication, # Extract location information from publication field for Other genre
+      TRUE ~ NA_character_
+    ),
+    z_URL = case_when(
+      genre == "Other" & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ z_URL
+    ),
+    # Create z_Date for Other genre - use date_raw  
+    z_Date = case_when(
+      genre == "Other" & !is.na(date_raw) ~
+        format(ymd(date_raw), "%Y-%m-%d"),
+      TRUE ~ z_Date
+    )
+
+  )
+
+# ---- CERTIFICATE --------------------------------------------------
+# Item Type: Document
+# Title: Marriage Certificate for John Smith and Jane Doe
+# Name: State Board of Health Missouri
+# Publication: 
+# Pages: 
+# Date: 
+# Archive: 
+# LocArchive: 
+# URL: 
+# Language: en_US
+# Extra: Filename: 
+
+sources_fixed_5 <- sources_fixed_4 |>
+  mutate(
+    z_ItemType = case_when(
+      genre == "Certificate" ~ "Document",
+      TRUE ~ z_ItemType
+    ),
+    # Create z_Title for Certificates
+    # Reformulate title to "Marriage Certificate for John Smith and Jane Doe"
+    # Extract certificate type (e.g., Marriage Certificate) from detected_filenames (last two words before file extension) and name from name, then combine with "for" to create z_Title
+    # Capitalize first letter of each word in certificate type
+    # Extract names from name and combine with "Certificate for" to create z_Title
+    z_title = case_when(
+      genre == "Certificate" ~ paste0(
+        str_to_title(
+          str_extract(
+            detected_filenames,
+            regex(
+              "\\b\\w+\\s+\\w+\\b(?=\\.[^.]+$)", # Last 2 words before file extension, then capitalize first letter of each word
+              ignore_case = TRUE
+            )
+          )
+        ),
+        " for ",
+        name
+      ),
+      TRUE ~ z_title
+    ),
+    # Create z_name for Certificates
+    # If detected_urls contains "sos.mo.gov" set to "State Board of Health Missouri"
+    z_name = case_when(
+      genre == "Certificate" & str_detect(detected_urls, regex("sos\\.mo\\.gov", ignore_case = TRUE)) ~ "State Board of Health Missouri",
+      TRUE ~ z_name
+    ),
+    # Create z_Language for Certificates
+    z_Language = case_when(
+      genre == "Certificate" ~ "en_US",
+      TRUE ~ z_Language
+    ),
+    # Create z_Date for Certificates - use date_raw
+    z_Date = case_when(
+      genre == "Certificate" & !is.na(date_raw) ~
+        format(ymd(date_raw), "%Y-%m-%d"),
+      TRUE ~ z_Date
+    ),
+    # Create z_URL for Certificates
+    z_URL = case_when(
+      genre == "Certificate" & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ z_URL
+    )
+  )
+
+
 
 # ---- SAVE ---------------------------------------------------
 
