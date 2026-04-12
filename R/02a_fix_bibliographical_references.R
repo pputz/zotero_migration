@@ -309,6 +309,11 @@ sources_fixed_3 <- sources_fixed_2 |>
       genre == "Zeitungsartikel" & !is.na(publication) ~ author, # Extract publication name from author field for newspaper articles
       TRUE ~ NA_character_
     ),
+    # Create z_Pages for Newspaper Articles - use all information from publication field
+    z_Pages = case_when(
+      genre == "Zeitungsartikel" & !is.na(publication) ~ publication, # Extract page information from publication field for newspaper articles
+      TRUE ~ NA_character_
+    ),
     # Create z_Date for Newspaper Articles
     # Extract date from refn (yyyymmdd) and reformat to "YYYY-MM-DD" for z_Date
     z_Date = case_when(
@@ -316,10 +321,13 @@ sources_fixed_3 <- sources_fixed_2 |>
         format(ymd(str_extract(refn, "\\d{8}")), "%Y-%m-%d"),
       TRUE ~ z_Date
     ),
-    # Create z_Archive for Newspaper Articles
+    # Create z_Archive for Newspaper Articles; if detected_urls contains "anno" set to "Österreichische Nationalbibliothek; via ANNO"
     z_Archive = case_when(
-      genre ==
-        "Zeitungsartikel" ~ "Österreichische Nationalbibliothek; via ANNO",
+      genre == "Zeitungsartikel" &
+        str_detect(
+          detected_urls,
+          regex("anno", ignore_case = TRUE)
+        ) ~ "Österreichische Nationalbibliothek; via ANNO",
       TRUE ~ z_Archive
     ),
     # Create z_URL for Newspaper Articles
