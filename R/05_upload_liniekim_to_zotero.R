@@ -1,8 +1,5 @@
-#!/usr/bin/env Rscript
-# Script: 05_upload_liniekim_to_zotero.R
-# Purpose: Find local files referenced in detected_filenames in
-# data/sources_step02a_biblio_fixed.csv under the root
-# /Users/pp/Docs/ancestors/Ahnentafel/Personen, filter
+# exact name match and under Familytree/LINIE
+# previously: grepl("Familytree/Linie Kim", col_fullpaths, fixed = TRUE)
 # for LINIE, and upload items+attachments to Zotero
 # if Zotero API env vars are provided. Otherwise write a
 # plan JSON for manual import.
@@ -13,19 +10,20 @@ suppressPackageStartupMessages({
   library(httr)
   library(dplyr)
   library(stringr)
+  library(purrr)
 })
 
 ROOT_DIR <- "/Users/pp/Docs/ancestors/Ahnentafel/Personen"
 CSV_PATH <- "data/sources_step02a_biblio_fixed.csv"
 # ---- PARAMETER: set the Linie to process ----------------------------
-LINIE      <- "Linie Putz"
+LINIE <- "Linie Putz"
 # previously: LINIE <- "Linie Kim"
 # ---------------------------------------------------------------------
 
 # derive slugified linie name for output filenames, e.g. "linie-putz"
 linie_slug <- tolower(gsub("\\s+", "-", LINIE))
-OUT_PLAN   <- paste0("data/", linie_slug, "_upload_plan.json")
-LOG_PATH   <- paste0("data/", linie_slug, "_upload_api_log.jsonl")
+OUT_PLAN <- paste0("data/", linie_slug, "_upload_plan.json")
+LOG_PATH <- paste0("data/", linie_slug, "_upload_api_log.jsonl")
 
 csv <- read_csv(CSV_PATH, show_col_types = FALSE)
 stopifnot("detected_filenames" %in% names(csv))
@@ -34,8 +32,9 @@ stopifnot("z_ItemType" %in% names(csv))
 
 all_files <- list.files(ROOT_DIR, recursive = TRUE, full.names = TRUE)
 
-# 1) Find all file paths that contain "Linie Kim"
+# 1) Find all file paths that contain LINIE
 matched_paths <- all_files[grepl(LINIE, all_files, fixed = TRUE)]
+# previously: grepl("Linie Kim", all_files, ignore.case = TRUE)
 if (length(matched_paths) == 0) {
   message("No files under ", ROOT_DIR, " contain '", LINIE, "' in their path")
   quit(status = 0)
@@ -58,7 +57,9 @@ if (nrow(liniekim) == 0) {
   message(
     "No rows in ",
     CSV_PATH,
-    " have detected_filenames matching filenames found for '", LINIE, "'"
+    " have detected_filenames matching filenames found for '",
+    LINIE,
+    "'"
   )
   quit(status = 0)
 }
@@ -312,6 +313,26 @@ perform_upload <- function(entries) {
         "document"
       },
       title = title,
+      # creators: personal (lastName/firstName) takes precedence over institutional (name)
+      creators = if (!is.null(e$creator) && !is.na(e$creator)) {
+        if (grepl(",", e$creator, fixed = TRUE)) {
+          # "Last, First" format -> personal author
+          parts <- strsplit(e$creator, ",\\s*")[[1]]
+          list(list(
+            creatorType = "author",
+            lastName = trimws(parts[[1]]),
+            firstName = if (length(parts) >= 2) trimws(parts[[2]]) else ""
+          ))
+        } else {
+          # institutional / single-name author
+          list(list(
+            creatorType = "author",
+            name = e$creator
+          ))
+        }
+      } else {
+        list()
+      },
       extra = if (!is.null(e$extra) && !is.na(e$extra)) e$extra else NULL,
       archive = if (!is.null(e$archive) && !is.na(e$archive)) {
         e$archive
@@ -319,6 +340,11 @@ perform_upload <- function(entries) {
         NULL
       },
       date = if (!is.null(e$date) && !is.na(e$date)) e$date else NULL,
+      url = if (!is.null(e$url) && !is.na(e$url) && nchar(trimws(e$url)) > 0) {
+        e$url
+      } else {
+        NULL
+      },
       language = if (!is.null(e$language) && !is.na(e$language)) {
         e$language
       } else {
