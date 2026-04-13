@@ -269,6 +269,15 @@ perform_upload <- function(entries) {
     return(NULL)
   }
 
+  # derive a compact ASCII tag from a collection name
+  # e.g. "金 東岱 Kim Dong Dae 1939" -> "KimDongDae1939"
+  collection_to_tag <- function(name) {
+    if (is.null(name) || name == "") {
+      return(NULL)
+    }
+    gsub("[^A-Za-z0-9]", "", name)
+  }
+
   for (e in entries) {
     title <- if (!is.null(e$title)) e$title else e$source_id
     # use parent folder name as collection name if files exist
@@ -280,6 +289,13 @@ perform_upload <- function(entries) {
     coll_key <- NULL
     if (!is.null(coll_name)) {
       coll_key <- ensure_collection(coll_name)
+    }
+
+    # only derive a tag when the folder resolved to a real Zotero collection
+    tag_str <- if (!is.null(coll_key)) {
+      collection_to_tag(col_map[[coll_key]]$name)
+    } else {
+      NULL
     }
 
     item <- list(
@@ -301,7 +317,7 @@ perform_upload <- function(entries) {
       } else {
         NULL
       },
-      tags = list(list(tag = "Linie Kim"))
+      tags = if (!is.null(tag_str)) list(list(tag = tag_str)) else list()
     )
     item <- Filter(Negate(is.null), item)
     if (!is.null(coll_key)) {
