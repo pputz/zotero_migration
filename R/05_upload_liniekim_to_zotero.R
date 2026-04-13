@@ -283,13 +283,25 @@ perform_upload <- function(entries) {
     }
 
     item <- list(
-      itemType = if (!is.null(e$itemType) && !is.na(e$itemType)) e$itemType else "document",
-      title    = title,
-      extra    = if (!is.null(e$extra)    && !is.na(e$extra))    e$extra    else NULL,
-      archive  = if (!is.null(e$archive)  && !is.na(e$archive))  e$archive  else NULL,
-      date     = if (!is.null(e$date)     && !is.na(e$date))     e$date     else NULL,
-      language = if (!is.null(e$language) && !is.na(e$language)) e$language else NULL,
-      tags     = list(list(tag = "Linie Kim"))
+      itemType = if (!is.null(e$itemType) && !is.na(e$itemType)) {
+        e$itemType
+      } else {
+        "document"
+      },
+      title = title,
+      extra = if (!is.null(e$extra) && !is.na(e$extra)) e$extra else NULL,
+      archive = if (!is.null(e$archive) && !is.na(e$archive)) {
+        e$archive
+      } else {
+        NULL
+      },
+      date = if (!is.null(e$date) && !is.na(e$date)) e$date else NULL,
+      language = if (!is.null(e$language) && !is.na(e$language)) {
+        e$language
+      } else {
+        NULL
+      },
+      tags = list(list(tag = "Linie Kim"))
     )
     item <- Filter(Negate(is.null), item)
     if (!is.null(coll_key)) {
@@ -318,7 +330,12 @@ perform_upload <- function(entries) {
       } else if (!is.null(created$data) && !is.null(created$data$key)) {
         item_key <- created$data$key
       }
-      message("Created item for source_id=", e$source_id, " -> itemKey=", item_key)
+      message(
+        "Created item for source_id=",
+        e$source_id,
+        " -> itemKey=",
+        item_key
+      )
       # create linked-file attachment items instead of uploading binary
       if (length(e$files) > 0 && !is.null(item_key)) {
         for (fp in e$files) {
@@ -379,8 +396,11 @@ perform_upload <- function(entries) {
               "If-Unmodified-Since-Version" = cur_ver,
               "Content-Type" = "application/json"
             ),
-            body = list(collections = c(coll_key)),
-            encode = "json"
+            body = toJSON(
+              list(collections = list(coll_key)),
+              auto_unbox = TRUE
+            ),
+            encode = "raw"
           )
           log_api(
             patch_res,
