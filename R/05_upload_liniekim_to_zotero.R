@@ -3,7 +3,7 @@
 # Purpose: Find local files referenced in detected_filenames in
 # data/sources_step02a_biblio_fixed.csv under the root
 # /Users/pp/Docs/ancestors/Ahnentafel/Personen, filter
-# for "Linie Kim", and upload items+attachments to Zotero
+# for LINIE, and upload items+attachments to Zotero
 # if Zotero API env vars are provided. Otherwise write a
 # plan JSON for manual import.
 
@@ -17,8 +17,15 @@ suppressPackageStartupMessages({
 
 ROOT_DIR <- "/Users/pp/Docs/ancestors/Ahnentafel/Personen"
 CSV_PATH <- "data/sources_step02a_biblio_fixed.csv"
-OUT_PLAN <- "data/liniekim_upload_plan.json"
-LOG_PATH <- "data/liniekim_upload_api_log.jsonl"
+# ---- PARAMETER: set the Linie to process ----------------------------
+LINIE      <- "Linie Putz"
+# previously: LINIE <- "Linie Kim"
+# ---------------------------------------------------------------------
+
+# derive slugified linie name for output filenames, e.g. "linie-putz"
+linie_slug <- tolower(gsub("\\s+", "-", LINIE))
+OUT_PLAN   <- paste0("data/", linie_slug, "_upload_plan.json")
+LOG_PATH   <- paste0("data/", linie_slug, "_upload_api_log.jsonl")
 
 csv <- read_csv(CSV_PATH, show_col_types = FALSE)
 stopifnot("detected_filenames" %in% names(csv))
@@ -28,9 +35,9 @@ stopifnot("z_ItemType" %in% names(csv))
 all_files <- list.files(ROOT_DIR, recursive = TRUE, full.names = TRUE)
 
 # 1) Find all file paths that contain "Linie Kim"
-matched_paths <- all_files[grepl("Linie Kim", all_files, ignore.case = TRUE)]
+matched_paths <- all_files[grepl(LINIE, all_files, fixed = TRUE)]
 if (length(matched_paths) == 0) {
-  message("No files under ", ROOT_DIR, " contain 'Linie Kim' in their path")
+  message("No files under ", ROOT_DIR, " contain '", LINIE, "' in their path")
   quit(status = 0)
 }
 
@@ -51,7 +58,7 @@ if (nrow(liniekim) == 0) {
   message(
     "No rows in ",
     CSV_PATH,
-    " have detected_filenames matching filenames found for 'Linie Kim'"
+    " have detected_filenames matching filenames found for '", LINIE, "'"
   )
   quit(status = 0)
 }
@@ -231,7 +238,7 @@ perform_upload <- function(entries) {
     col_fullpaths <- character(0)
   }
 
-  # helper: find an existing collection key by folder name; prefer Familytree/Linie Kim matches
+  # helper: find an existing collection key by folder name; prefer Familytree/LINIE matches
   ensure_collection <- function(folder_name, fullpath_hint = NULL) {
     if (is.null(folder_name) || folder_name == "") {
       return(NULL)
@@ -239,10 +246,10 @@ perform_upload <- function(entries) {
     if (length(col_fullpaths) == 0) {
       return(NULL)
     }
-    # exact name match and in Familytree/Linie Kim
+    # exact name match and under Familytree/LINIE
     cand <- names(col_fullpaths)[
       basename(col_fullpaths) == folder_name &
-        grepl("Familytree/Linie Kim", col_fullpaths, fixed = TRUE)
+        grepl(paste0("Familytree/", LINIE), col_fullpaths, fixed = TRUE)
     ]
     if (length(cand) > 0) {
       return(cand[[1]])
@@ -469,4 +476,4 @@ if (inherits(ok, "logical") && !ok) {
   message("Upload plan written to ", OUT_PLAN)
 }
 
-message("Done. Processed ", length(plan_entries), " 'Linie Kim' references.")
+message("Done. Processed ", length(plan_entries), " '", LINIE, "' references.")
