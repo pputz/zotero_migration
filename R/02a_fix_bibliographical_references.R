@@ -11,7 +11,7 @@ library(tidyverse)
 
 input_csv <- "data/sources_step01_enriched.csv"
 author_mapping_csv <- "data/manual data wrangling/z_authors.csv"
-output_csv <- "data/sources_step02_biblio_fixed.csv"
+output_csv <- "data/sources_step02a_biblio_fixed.csv"
 
 # ---- LOAD ---------------------------------------------------
 
@@ -662,5 +662,4 @@ sources_fixed_final <- sources_fixed_10 |>
   )
 
 # ---- SAVE ---------------------------------------------------
-# save to /data/sources_step02_biblio_fixed.csv
-write_csv(sources_step02a_fixed_final, "data/sources_step02_biblio_fixed.csv")
+write_csv(sources_fixed_final, output_csv)
