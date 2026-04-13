@@ -69,7 +69,11 @@ sources_fixed <- sources |>
 # ---- FIX AUTHORS --------------------------------------------
 
 sources_fixed <- sources_fixed |>
-  left_join(author_mapping, by = c("author" = "original"))
+  left_join(author_mapping, by = c("author" = "original")) |>
+  rename(
+    z_last_name = `z_last name`,
+    z_first_name = `z_first name`
+  )
 
 
 # ---- IDENTIFY GENRE -----------------------------------------
