@@ -153,10 +153,10 @@ sources_fixed_2 <- sources_fixed_1 |>
 
     # Create z_ItemType for Kirchenbücher
     z_ItemType = case_when(
-      genre == "Taufbuch" ~ "Taufbuch",
-      genre == "Trauungsbuch" ~ "Trauungsbuch",
-      genre == "Totenbuch" ~ "Totenbuch",
-      TRUE ~ "Book"
+      genre == "Taufbuch" ~ "book",
+      genre == "Trauungsbuch" ~ "book",
+      genre == "Totenbuch" ~ "book",
+      TRUE ~ NA_character_
     ),
 
     # Create z_Series for Kirchenbücher
@@ -224,7 +224,7 @@ sources_fixed_2 <- sources_fixed_1 |>
 sources_fixed_2 <- sources_fixed_2 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Census" ~ "Document",
+      genre == "Census" ~ "document",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Census
@@ -283,7 +283,7 @@ sources_fixed_2 <- sources_fixed_2 |>
 sources_fixed_3 <- sources_fixed_2 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Zeitungsartikel" ~ "Newspaper Article",
+      genre == "Zeitungsartikel" ~ "newspaperArticle",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Newspaper Articles
@@ -358,7 +358,7 @@ sources_fixed_3 <- sources_fixed_2 |>
 sources_fixed_4 <- sources_fixed_3 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Other" ~ "Document",
+      genre == "Other" ~ "document",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Other genre - use title field
@@ -399,7 +399,7 @@ sources_fixed_4 <- sources_fixed_3 |>
 sources_fixed_5 <- sources_fixed_4 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Certificate" ~ "Document",
+      genre == "Certificate" ~ "document",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Certificates
@@ -467,7 +467,7 @@ sources_fixed_5 <- sources_fixed_4 |>
 sources_fixed_6 <- sources_fixed_5 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Parte" ~ "Document",
+      genre == "Parte" ~ "document",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Parte
@@ -512,7 +512,7 @@ sources_fixed_6 <- sources_fixed_5 |>
 sources_fixed_7 <- sources_fixed_6 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Grave" ~ "Document",
+      genre == "Grave" ~ "document",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Grave
@@ -570,7 +570,7 @@ sources_fixed_7 <- sources_fixed_6 |>
 sources_fixed_8 <- sources_fixed_7 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Grundbuch" ~ "Report",
+      genre == "Grundbuch" ~ "report",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Grundbuch - use title field
@@ -651,6 +651,16 @@ sources_fixed_10 <- sources_fixed_9 |>
     z_Extra = paste0("GedcomID: ", source_id)
   )
 
-# ---- SAVE ---------------------------------------------------
 
-# write_csv(sources_fixed, output_csv)
+# ---- SELECT AND REORDER COLUMNS -----------------------------
+# select source_id, detected_filenames, and all columns starting with "z_"
+sources_fixed_final <- sources_fixed_10 |>
+  select(
+    source_id,
+    detected_filenames,
+    starts_with("z_")
+  )
+
+# ---- SAVE ---------------------------------------------------
+# save to /data/sources_step02_biblio_fixed.csv
+write_csv(sources_step02a_fixed_final, "data/sources_step02_biblio_fixed.csv")
