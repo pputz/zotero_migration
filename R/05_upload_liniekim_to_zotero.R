@@ -87,6 +87,8 @@ plan_entries <- lapply(seq_len(nrow(liniekim)), function(i) {
     date = as.character(row$z_Date),
     url = as.character(row$z_URL),
     language = as.character(row$z_Language),
+    series = as.character(row$z_Series),
+    volume = as.character(row$z_Volume),
     creator = if (
       !is.na(row$z_last_name) && nchar(str_trim(row$z_last_name)) > 0
     ) {
@@ -342,6 +344,16 @@ perform_upload <- function(entries) {
       date = if (!is.null(e$date) && !is.na(e$date)) e$date else NULL,
       url = if (!is.null(e$url) && !is.na(e$url) && nchar(trimws(e$url)) > 0) {
         e$url
+      } else {
+        NULL
+      },
+      series = if (!is.null(e$series) && !is.na(e$series)) {
+        e$series
+      } else {
+        NULL
+      },
+      volume = if (!is.null(e$volume) && !is.na(e$volume)) {
+        e$volume
       } else {
         NULL
       },
