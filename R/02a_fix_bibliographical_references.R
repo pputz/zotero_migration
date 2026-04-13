@@ -343,18 +343,17 @@ sources_fixed_3 <- sources_fixed_2 |>
   )
 
 
-
 # ---- OTHER --------------------------------------------------
 # Item Type: Document
-# Title: 
-# Publication: 
-# Pages: 
-# Date: 
-# Archive: 
-# LocArchive: 
-# URL: 
-# Language: 
-# Extra: Filename: 
+# Title:
+# Publication:
+# Pages:
+# Date:
+# Archive:
+# LocArchive:
+# URL:
+# Language:
+# Extra: Filename:
 
 sources_fixed_4 <- sources_fixed_3 |>
   mutate(
@@ -371,27 +370,26 @@ sources_fixed_4 <- sources_fixed_3 |>
       genre == "Other" & !is.na(detected_urls) ~ detected_urls,
       TRUE ~ z_URL
     ),
-    # Create z_Date for Other genre - use date_raw  
+    # Create z_Date for Other genre - use date_raw
     z_Date = case_when(
       genre == "Other" & !is.na(date_raw) ~
         format(ymd(date_raw), "%Y-%m-%d"),
       TRUE ~ z_Date
     )
-
   )
 
 # ---- CERTIFICATE --------------------------------------------------
 # Item Type: Document
 # Title: Marriage Certificate for John Smith and Jane Doe
 # Name: State Board of Health Missouri
-# Publication: 
-# Pages: 
-# Date: 
-# Archive: 
-# LocArchive: 
-# URL: 
+# Publication:
+# Pages:
+# Date:
+# Archive:
+# LocArchive:
+# URL:
 # Language: en_US
-# Extra: Filename: 
+# Extra: Filename:
 
 sources_fixed_5 <- sources_fixed_4 |>
   mutate(
@@ -423,7 +421,11 @@ sources_fixed_5 <- sources_fixed_4 |>
     # Create z_name for Certificates
     # If detected_urls contains "sos.mo.gov" set to "State Board of Health Missouri"
     z_name = case_when(
-      genre == "Certificate" & str_detect(detected_urls, regex("sos\\.mo\\.gov", ignore_case = TRUE)) ~ "State Board of Health Missouri",
+      genre == "Certificate" &
+        str_detect(
+          detected_urls,
+          regex("sos\\.mo\\.gov", ignore_case = TRUE)
+        ) ~ "State Board of Health Missouri",
       TRUE ~ z_name
     ),
     # Create z_Language for Certificates
@@ -444,7 +446,150 @@ sources_fixed_5 <- sources_fixed_4 |>
     )
   )
 
+# ---- PARTE --------------------------------------------------
+# Item Type: Document
+# Title: Parte für Günter Putz
+# Name:
+# Publication:
+# Pages:
+# Date:
+# Archive:
+# LocArchive:
+# URL:
+# Language: de_AT
+# Extra:
 
+sources_fixed_6 <- sources_fixed_5 |>
+  mutate(
+    z_ItemType = case_when(
+      genre == "Parte" ~ "Document",
+      TRUE ~ z_ItemType
+    ),
+    # Create z_Title for Parte
+    # Reformulate title to "Parte für Günter Putz"
+    # Extract name from name and combine with "Parte für" to create z_Title
+    z_title = case_when(
+      genre == "Parte" ~ paste0("Parte für ", name),
+      TRUE ~ z_title
+    ),
+    # Create z_Language for Parte
+    z_Language = case_when(
+      genre == "Parte" ~ "de_AT",
+      TRUE ~ z_Language
+    ),
+    # Create z_Date for Parte - use date_raw
+    z_Date = case_when(
+      genre == "Parte" & !is.na(date_raw) ~
+        format(ymd(date_raw), "%Y-%m-%d"),
+      TRUE ~ z_Date
+    ),
+    # Create z_URL for Parte
+    z_URL = case_when(
+      genre == "Parte" & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ z_URL
+    )
+  )
+
+
+# ---- GRAVE --------------------------------------------------
+# Item Type: Document
+# Title: Epitaph for John Smith, deceased 1950
+# Name:
+# Publication:
+# Pages:
+# Date:
+# Archive: Find a Grave
+# LocArchive:
+# URL:
+# Language: en_US
+# Extra:
+
+sources_fixed_7 <- sources_fixed_6 |>
+  mutate(
+    z_ItemType = case_when(
+      genre == "Grave" ~ "Document",
+      TRUE ~ z_ItemType
+    ),
+    # Create z_Title for Grave
+    # Reformulate title to "Epitaph for John Smith, deceased 1950"
+    # Extract name from name and date from date_raw, then combine with "Epitaph for" to create z_Title
+    z_title = case_when(
+      genre == "Grave" ~ paste0(
+        "Epitaph for ",
+        name,
+        if_else(
+          !is.na(date_raw),
+          paste0(", deceased ", str_extract(date_raw, "^\\d{4}")),
+          ""
+        )
+      ),
+      TRUE ~ z_title
+    ),
+    # Create z_Language for Grave
+    z_Language = case_when(
+      genre == "Grave" ~ "en_US",
+      TRUE ~ z_Language
+    ),
+    # Create z_Date for Grave - use date_raw
+    z_Date = case_when(
+      genre == "Grave" & !is.na(date_raw) ~
+        format(ymd(date_raw), "%Y-%m-%d"),
+      TRUE ~ z_Date
+    ),
+    # Create z_Archive for Grave
+    z_Archive = case_when(
+      genre == "Grave" ~ "Find a Grave",
+      TRUE ~ z_Archive
+    ),
+    # Create z_URL for Grave
+    z_URL = case_when(
+      genre == "Grave" & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ z_URL
+    )
+  )
+
+# ---- GRUNDBUCH --------------------------------------------------
+# Item Type: Report
+# Title: as is from title field
+# Name:
+# Report Number: as is from publication field
+# Publication:
+# Pages:
+# Date:
+# Archive:
+# LocArchive:
+# URL:
+# Language: de_AT
+# Extra:
+
+sources_fixed_8 <- sources_fixed_7 |>
+  mutate(
+    z_ItemType = case_when(
+      genre == "Grundbuch" ~ "Report",
+      TRUE ~ z_ItemType
+    ),
+    # Create z_ReportNumber for Grundbuch - use publication field
+    z_ReportNumber = case_when(
+      genre == "Grundbuch" & !is.na(publication) ~ publication,
+      TRUE ~ NA_character_
+    ),
+    # Create z_Language for Grundbuch
+    z_Language = case_when(
+      genre == "Grundbuch" ~ "de_AT",
+      TRUE ~ z_Language
+    ),
+    # Create z_Date for Grundbuch - use date_raw
+    z_Date = case_when(
+      genre == "Grundbuch" & !is.na(date_raw) ~
+        format(ymd(date_raw), "%Y-%m-%d"),
+      TRUE ~ z_Date
+    ),
+    # Create z_URL for Grundbuch
+    z_URL = case_when(
+      genre == "Grundbuch" & !is.na(detected_urls) ~ detected_urls,
+      TRUE ~ z_URL
+    )
+  )
 
 # ---- SAVE ---------------------------------------------------
 
