@@ -238,7 +238,7 @@ sources_fixed_2 <- sources_fixed_2 |>
           name,
           " household"
         ),
-      TRUE ~ title
+      TRUE ~ z_title
     ),
     # Create z_name for Census
     z_name = case_when(
@@ -360,6 +360,11 @@ sources_fixed_4 <- sources_fixed_3 |>
     z_ItemType = case_when(
       genre == "Other" ~ "Document",
       TRUE ~ z_ItemType
+    ),
+    # Create z_Title for Other genre - use title field
+    z_title = case_when(
+      genre == "Other" & !is.na(title) ~ title,
+      TRUE ~ z_title
     ),
     # Create z_LocArchive - extract location information from publication field
     z_LocArchive = case_when(
@@ -568,6 +573,11 @@ sources_fixed_8 <- sources_fixed_7 |>
       genre == "Grundbuch" ~ "Report",
       TRUE ~ z_ItemType
     ),
+    # Create z_Title for Grundbuch - use title field
+    z_title = case_when(
+      genre == "Grundbuch" & !is.na(title) ~ title,
+      TRUE ~ z_title
+    ),
     # Create z_ReportNumber for Grundbuch - use publication field
     z_ReportNumber = case_when(
       genre == "Grundbuch" & !is.na(publication) ~ publication,
@@ -589,6 +599,56 @@ sources_fixed_8 <- sources_fixed_7 |>
       genre == "Grundbuch" & !is.na(detected_urls) ~ detected_urls,
       TRUE ~ z_URL
     )
+  )
+
+
+# ---- ADD MISSING FILE NAMES ---------------------------------
+# Add missing detected_filenames for source_ids based on the following mapping:
+# @96868972@	19550524 immigration petition.pdf
+# @31864124@	18830214 Taufbuch.pdf
+# @61798804@	18930915 Taufbuch.jpg
+# @98612648@	History Jung-Rhyun Kim.pdf
+# @23644032@	19880304 Partezettel.pdf
+# @61166504@	Schick Josef und Theresia Totenbuchregister.jpg
+# @93960074@	18830214 Taufbuch.pdf
+# @8187572@	19380612 Trauungsbuch.jpg
+# @78680360@	Ansan Kim Jokbo 1989.pdf
+# @70523192@	0002 Putz Martin 1856.pdf
+
+sources_fixed_9 <- sources_fixed_8 |>
+  mutate(
+    detected_filenames = case_when(
+      source_id == "@96868972@" ~ "19550524 immigration petition.pdf",
+      source_id == "@31864124@" ~ "18830214 Taufbuch.pdf",
+      source_id == "@61798804@" ~ "18930915 Taufbuch.jpg",
+      source_id == "@98612648@" ~ "History Jung-Rhyun Kim.pdf",
+      source_id == "@23644032@" ~ "19880304 Partezettel.pdf",
+      source_id ==
+        "@61166504@" ~ "Schick Josef und Theresia Totenbuchregister.jpg",
+      source_id == "@93960074@" ~ "18830214 Taufbuch.pdf",
+      source_id == "@8187572@" ~ "19380612 Trauungsbuch.jpg",
+      source_id == "@78680360@" ~ "Ansan Kim Jokbo 1989.pdf",
+      source_id == "@70523192@" ~ "0002 Putz Martin 1856.pdf",
+      TRUE ~ detected_filenames
+    )
+  )
+
+# ---- ADD MISSING z_title -----------------------------------
+# In all cases where z_title is missing add title field
+sources_fixed_9 <- sources_fixed_9 |>
+  mutate(
+    z_title = case_when(
+      is.na(z_title) & !is.na(title) ~ title,
+      TRUE ~ z_title
+    )
+  )
+
+# ---- UPDATE z_Extra ----------------------------------------
+# Delete current content of z_Extra
+# Add "GedcomID: <source_id>" to z_Extra for all records
+sources_fixed_10 <- sources_fixed_9 |>
+  mutate(
+    z_Extra = paste0("GedcomID: ", source_id)
   )
 
 # ---- SAVE ---------------------------------------------------
