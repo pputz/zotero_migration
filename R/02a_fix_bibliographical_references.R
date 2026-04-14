@@ -400,7 +400,7 @@ sources_fixed_4 <- sources_fixed_3 |>
     # Create z_ReportNumber - extract report number from publication field
     z_ReportNumber = case_when(
       genre == "Other" & !is.na(publication) ~ publication, # Extract report number from publication field for Other genre
-      TRUE ~ NA_character_
+      TRUE ~ z_ReportNumber
     ),
     z_URL = case_when(
       genre == "Other" & !is.na(detected_urls) ~ detected_urls,
@@ -617,7 +617,7 @@ sources_fixed_8 <- sources_fixed_7 |>
     # Create z_ReportNumber for Grundbuch - use publication field
     z_ReportNumber = case_when(
       genre == "Grundbuch" & !is.na(publication) ~ publication,
-      TRUE ~ NA_character_
+      TRUE ~ z_ReportNumber
     ),
     # Create z_Language for Grundbuch
     z_Language = case_when(

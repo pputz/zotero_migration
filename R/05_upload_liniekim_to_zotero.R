@@ -87,8 +87,9 @@ plan_entries <- lapply(seq_len(nrow(liniekim)), function(i) {
     date = as.character(row$z_Date),
     url = as.character(row$z_URL),
     language = as.character(row$z_Language),
-    series = as.character(row$z_Series),
-    volume = as.character(row$z_Volume),
+    institution = as.character(row$z_Institution),
+    reportType = as.character(row$z_ReportType),
+    reportNumber = as.character(row$z_ReportNumber),
     creator = if (
       !is.na(row$z_last_name) && nchar(str_trim(row$z_last_name)) > 0
     ) {
@@ -347,18 +348,33 @@ perform_upload <- function(entries) {
       } else {
         NULL
       },
-      series = if (!is.null(e$series) && !is.na(e$series)) {
+      series = if (length(e$series) > 0 && !is.na(e$series)) {
         e$series
       } else {
         NULL
       },
-      volume = if (!is.null(e$volume) && !is.na(e$volume)) {
+      volume = if (length(e$volume) > 0 && !is.na(e$volume)) {
         e$volume
       } else {
         NULL
       },
       language = if (!is.null(e$language) && !is.na(e$language)) {
         e$language
+      } else {
+        NULL
+      },
+      institution = if (!is.null(e$institution) && !is.na(e$institution)) {
+        e$institution
+      } else {
+        NULL
+      },
+      reportType = if (!is.null(e$reportType) && !is.na(e$reportType)) {
+        e$reportType
+      } else {
+        NULL
+      },
+      reportNumber = if (!is.null(e$reportNumber) && !is.na(e$reportNumber)) {
+        e$reportNumber
       } else {
         NULL
       },
