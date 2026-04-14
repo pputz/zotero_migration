@@ -228,9 +228,9 @@ sources_fixed_2 <- sources_fixed_1 |>
   )
 
 # ---- CENSUS -------------------------------------------------
-# Item Type: Document
+# Item Type: Report
 # Title: 1850 U.S. Census – John Smith household, Springfield, Sangamon County, Illinois
-# Author: United States Census Bureau
+# Institution: United States Census Bureau
 # Date: 1850-06-01
 # Archive: National Archives (NARA); via Ancestry
 # Archive Location: Springfield, Ward 3, p. 142, dwelling 210, family 225
@@ -238,10 +238,10 @@ sources_fixed_2 <- sources_fixed_1 |>
 # URL: (Ancestry link)
 # Extra: Household members listed?
 
-sources_fixed_2 <- sources_fixed_2 |>
+sources_fixed_2a <- sources_fixed_2 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Census" ~ "document",
+      genre == "Census" ~ "report",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Census
@@ -257,10 +257,10 @@ sources_fixed_2 <- sources_fixed_2 |>
         ),
       TRUE ~ z_title
     ),
-    # Create z_name for Census
-    z_name = case_when(
+    # Create z_Institution for Census
+    z_Institution = case_when(
       genre == "Census" ~ "United States Census Bureau",
-      TRUE ~ z_name
+      TRUE ~ z_Institution
     ),
     # Create z_Date for Census
     # Extract date from date_raw (yyyymmdd) and reformat to "YYYY-MM-DD" for z_Date
@@ -297,7 +297,7 @@ sources_fixed_2 <- sources_fixed_2 |>
 # Language: de_AT
 # Extra: Filename: OON_1950_06_01_p5.jpg
 
-sources_fixed_3 <- sources_fixed_2 |>
+sources_fixed_3 <- sources_fixed_2a |>
   mutate(
     z_ItemType = case_when(
       genre == "Zeitungsartikel" ~ "newspaperArticle",
@@ -361,13 +361,14 @@ sources_fixed_3 <- sources_fixed_2 |>
 
 
 # ---- OTHER --------------------------------------------------
-# Item Type: Document
+# Item Type: Report
 # Title:
+# Institution:
 # Publication:
 # Pages:
 # Date:
 # Archive:
-# LocArchive:
+# ReportNumber:
 # URL:
 # Language:
 # Extra: Filename:
@@ -375,7 +376,7 @@ sources_fixed_3 <- sources_fixed_2 |>
 sources_fixed_4 <- sources_fixed_3 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Other" ~ "document",
+      genre == "Other" ~ "report",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Other genre - use title field
@@ -383,9 +384,22 @@ sources_fixed_4 <- sources_fixed_3 |>
       genre == "Other" & !is.na(title) ~ title,
       TRUE ~ z_title
     ),
-    # Create z_LocArchive - extract location information from publication field
-    z_LocArchive = case_when(
-      genre == "Other" & !is.na(publication) ~ publication, # Extract location information from publication field for Other genre
+
+    # Create z_Institution for Other genre - use name field
+    z_Institution = case_when(
+      genre == "Other" & !is.na(name) ~ z_name,
+      TRUE ~ z_Institution
+    ),
+
+    # Set z_name to NA for Other genre since we are using it for institution
+    z_name = case_when(
+      genre == "Other" ~ NA_character_,
+      TRUE ~ z_name
+    ),
+
+    # Create z_ReportNumber - extract report number from publication field
+    z_ReportNumber = case_when(
+      genre == "Other" & !is.na(publication) ~ publication, # Extract report number from publication field for Other genre
       TRUE ~ NA_character_
     ),
     z_URL = case_when(
@@ -401,14 +415,14 @@ sources_fixed_4 <- sources_fixed_3 |>
   )
 
 # ---- CERTIFICATE --------------------------------------------------
-# Item Type: Document
+# Item Type: Report
 # Title: Marriage Certificate for John Smith and Jane Doe
 # Name: State Board of Health Missouri
 # Publication:
 # Pages:
 # Date:
 # Archive:
-# LocArchive:
+# ReportNumber:
 # URL:
 # Language: en_US
 # Extra: Filename:
@@ -416,7 +430,7 @@ sources_fixed_4 <- sources_fixed_3 |>
 sources_fixed_5 <- sources_fixed_4 |>
   mutate(
     z_ItemType = case_when(
-      genre == "Certificate" ~ "document",
+      genre == "Certificate" ~ "report",
       TRUE ~ z_ItemType
     ),
     # Create z_Title for Certificates
@@ -440,14 +454,19 @@ sources_fixed_5 <- sources_fixed_4 |>
       ),
       TRUE ~ z_title
     ),
-    # Create z_name for Certificates
+    # Create z_Institution for Certificates
     # If detected_urls contains "sos.mo.gov" set to "State Board of Health Missouri"
-    z_name = case_when(
+    z_Institution = case_when(
       genre == "Certificate" &
         str_detect(
           detected_urls,
           regex("sos\\.mo\\.gov", ignore_case = TRUE)
         ) ~ "State Board of Health Missouri",
+      TRUE ~ z_Institution
+    ),
+    # Set z_name to NA for Certificates since we are using it for institution
+    z_name = case_when(
+      genre == "Certificate" ~ NA_character_,
       TRUE ~ z_name
     ),
     # Create z_Language for Certificates
