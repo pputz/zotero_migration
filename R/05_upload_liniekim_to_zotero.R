@@ -43,6 +43,9 @@ if (length(matched_paths) == 0) {
 matched_basenames <- basename(matched_paths)
 # map: basename -> vector of full paths
 paths_by_basename <- split(matched_paths, matched_basenames)
+# map: stem (basename without extension) -> vector of full paths
+matched_stems <- tools::file_path_sans_ext(matched_basenames)
+paths_by_stem <- split(matched_paths, matched_stems)
 
 # 2) Subset CSV rows whose detected_filenames contains any matched basename
 liniekim <- csv |>
@@ -64,15 +67,19 @@ if (nrow(liniekim) == 0) {
   quit(status = 0)
 }
 
-# 3) Attach matched full paths to each row
+# 3) Attach matched full paths to each row, including all same-stem siblings
 liniekim$matched_files <- lapply(liniekim$detected_filenames, function(fnames) {
   if (is.na(fnames) || fnames == "") {
     return(character(0))
   }
   basenames <- str_split(fnames, ";\\s*")[[1]]
-  unlist(lapply(basenames, function(b) {
-    paths_by_basename[[b]] %||% character(0)
+  paths <- unlist(lapply(basenames, function(b) {
+    direct <- paths_by_basename[[b]] %||% character(0)
+    stem <- tools::file_path_sans_ext(b)
+    sibs <- paths_by_stem[[stem]] %||% character(0)
+    unique(c(direct, sibs))
   }))
+  unique(paths)
 })
 
 # 4) Prepare plan entries using z_* columns
