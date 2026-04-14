@@ -13,10 +13,11 @@ suppressPackageStartupMessages({
   library(purrr)
 })
 
-ROOT_DIR <- "/Users/pp/Docs/ancestors/Ahnentafel/Personen"
+# ROOT_DIR <- "/Users/pp/Docs/ancestors/Ahnentafel/Personen"
+ROOT_DIR <- "/Users/pp/Library/Mobile Documents/com~apple~CloudDocs/iDocs/acestors_data/Personen"
 CSV_PATH <- "data/sources_step02a_biblio_fixed.csv"
 # ---- PARAMETER: set the Linie to process ----------------------------
-LINIE <- "Linie Putz"
+LINIE <- "Linie Schick"
 # previously: LINIE <- "Linie Kim"
 # ---------------------------------------------------------------------
 
