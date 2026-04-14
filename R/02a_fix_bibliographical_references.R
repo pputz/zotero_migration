@@ -119,8 +119,15 @@ genre_counts <- sources_fixed_1 |>
   arrange(desc(count))
 
 # ---- KIRCHENBUECHER ----------------------------------------
-# Pfarre Pichl bei Wels: Geburt Maria Königsmayr, 22. Juni 1842,
-# in: Taufbuch 106/1842, S. 6, Digitalisat über Matricula Online, URL.
+# Item Type: Report
+# Title: Geburt und Taufe Kreuzinger Augustine 24. August 1905
+# Institution: Katholische Kirche Diözese Linz - Pfarre Linz St. Mathias
+# Date:
+# ReportType: Taufbuch
+# ReportNumber: XI/42/307
+# Archive: Matricula Online; Landesarchiv Oberösterreich
+# URL: http://data.matricula-online.eu/en/oesterreich/oberoesterreich/linz-st-matthias-st-mathias/106%252F1905/?pg=44
+# Extra: Household members listed?
 
 # Set locale to German for month names
 Sys.setlocale("LC_TIME", "de_AT.UTF-8")
@@ -157,23 +164,37 @@ sources_fixed_2 <- sources_fixed_1 |>
 
     # Create z_ItemType for Kirchenbücher
     z_ItemType = case_when(
-      genre == "Taufbuch" ~ "book",
-      genre == "Trauungsbuch" ~ "book",
-      genre == "Totenbuch" ~ "book",
+      genre == "Taufbuch" ~ "report",
+      genre == "Trauungsbuch" ~ "report",
+      genre == "Totenbuch" ~ "report",
       TRUE ~ NA_character_
     ),
 
-    # Create z_Series for Kirchenbücher
-    z_Series = case_when(
+    # Create z_Institution for Kirchenbücher
+    z_Institution = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~ z_name, # Use extracted name as institution for Kirchenbücher
+      TRUE ~ NA_character_
+    ),
+
+    # Set z_name to NA for Kirchenbücher since we are using it for institution
+    z_name = case_when(
+      genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~ NA_character_,
+      TRUE ~ z_name
+    ),
+
+    # Create z_ReportType for Kirchenbücher
+    z_ReportType = case_when(
       genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~
         str_extract(title, "Taufbuch|Trauungsbuch|Totenbuch"),
       TRUE ~ NA_character_
     ),
 
-    # Create z_Volume for Kirchenbücher
-    z_Volume = case_when(
+    # Create z_ReportNumber for Kirchenbücher
+    z_ReportNumber = case_when(
       genre %in% c("Taufbuch", "Trauungsbuch", "Totenbuch") ~
-        str_extract(publication, "\\d+"), # Extract volume number from publication field -
+        str_remove(publication, "Taufbuch|Trauungsbuch|Totenbuch") |>
+        str_remove("^\\.|\\s+") |>
+        str_remove("^\\.|\\s+"), # take entire publication field but exclude the strings "Taufbuch", "Trauungsbuch", "Totenbuch"; delete leading "." and whitespace if present
       TRUE ~ NA_character_
     ),
 
@@ -202,14 +223,6 @@ sources_fixed_2 <- sources_fixed_1 |>
       genre %in%
         c("Taufbuch", "Trauungsbuch", "Totenbuch") &
         !is.na(detected_urls) ~ detected_urls,
-      TRUE ~ NA_character_
-    ),
-
-    # Create z_Extra for Kirchenbücher
-    z_Extra = case_when(
-      genre %in%
-        c("Taufbuch", "Trauungsbuch", "Totenbuch") &
-        !is.na(detected_filenames) ~ paste0("Filename: ", detected_filenames), # Pattern: "Filename: <filename>"
       TRUE ~ NA_character_
     )
   )
